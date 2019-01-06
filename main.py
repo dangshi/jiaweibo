@@ -12,6 +12,7 @@ api.add_resource(GQuery, "/query")
 
 @app.route('/')
 def index():
+# 网页不知道怎么用restful的方式
     return render_template('index.html')
 
 
