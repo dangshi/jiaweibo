@@ -1,4 +1,5 @@
 ### 项目架构
+采用python-flask框架，前端后端分离。
 data后端数据层与web前端之间采用restful接口，即利用json数据进行交互。
 * data目录存放后端代码
 * web 目录存放前端代码
