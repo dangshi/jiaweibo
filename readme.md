@@ -8,6 +8,6 @@ data后端数据层与web前端之间采用restful接口，即利用json数据�
 {
   "status": "OK",  # "OK" or "FAILED", 代表操作状态
   "msg":"",  #返回操作状态的详细信息, 例如操作成功，或者出错信息
-  "result":{},  # 返回具体操作返回的数据，格式可以为dict,list
+  "result":{},  # 返回具体操作返回的数据，格式可以为dict,list 具体格式由doc目录下的文档定义
 }
 ```
