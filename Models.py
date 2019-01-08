@@ -4,7 +4,7 @@ import datetime
 from flask_login import UserMixin
 
 users = []
-
+posts = []
 
 def get_user(user_id):
     for user in users:
@@ -21,6 +21,7 @@ class User(UserMixin):
         self._join_time = datetime.datetime.now
         # 这个append操作需要替换为添加到数据库
         users.append(self)
+        self.posts = []
 
     def is_authenticated(self):
         return True
@@ -44,7 +45,10 @@ class User(UserMixin):
 
 
 class Post():
-    pass
+    def __init__(self, text, username):
+        self.content = text
+        self.username = username
+        self.timestamp = datetime.datetime.now()
 
 
 class Relation():

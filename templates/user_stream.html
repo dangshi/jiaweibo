@@ -3,12 +3,12 @@
 {% block content %}
 <div class="row">
     <div class="grid-25">
-        <h!>{{ user.username }}</h!>
+        <h!>{{ user.get_username() }}</h!>
     </div>
     <div class="grid-50">
         <div class="grid-33">
             <h5>Posts</h5>
-            <p>{{ user.posts.count() }}</p>
+            <p>{{ user.posts|length }}</p>
         </div>
         <div class="grid-33">
             <h5>Followers</h5>

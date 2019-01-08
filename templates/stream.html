@@ -4,9 +4,9 @@
 {% for post in stream %}
     <article>
         <h2>
-            <a href="{{ url_for('stream', username = post.user.username) }}">{{ post.user.username }}</a>
+            <a href="{{ url_for('stream', username = post.username) }}">{{ post.username }}</a>
         </h2>
-        <i class="clock"></i><time date-time="{{ post.timestamp }}" class="distime" datetime="{{ post.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}">{{ post.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</time><a class="view" href="{{ url_for('view_post', post_id = post.id) }}">View</a>
+        <i class="clock"></i><time date-time="{{ post.timestamp }}" class="distime" datetime="{{ post.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}">{{ post.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</time>
         <div class="post">
             {{ post.content }}
         </div>

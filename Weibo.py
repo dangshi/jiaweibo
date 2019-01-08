@@ -2,10 +2,10 @@
 
 from flask import Flask
 from flask import redirect, url_for, render_template, flash
-from flask_login import LoginManager, login_required, login_user, logout_user
+from flask_login import LoginManager, login_required, login_user, logout_user, current_user
 
-from Models import User
-from Models import users, get_user    # 用list实现，未使用gstore
+from Models import User, Post
+from Models import users, get_user, posts   # 用list实现，未使用gstore
 from Forms import LoginForm
 
 app = Flask(__name__)
@@ -49,8 +49,7 @@ def load_user(user_id):
 @app.route('/register', methods=('GET', 'POST'))
 def register():
     # TODO
-    # 这里需要创建一个用户并且加入数据库中
-    User.create_user(username='test user 1', password='123456')
+    # 这里需要创建用户并且加入数据库中
     return 'create user !'
 
 
@@ -62,7 +61,6 @@ def login():
     """
     form = LoginForm()
     if form.validate_on_submit():
-        print('form validate! username:%s' % form.username.data)
         try:
             for user in users:
                 if user.get_username() == form.username.data:
@@ -92,7 +90,29 @@ def stream(username = None):
     如果username不为none并且就是current user，则返回用户的首页（所关注人的微博）
     如果username为none，返回任何用户的最新n条微博 
     """
-    return('a stream web page')
+    stream = []
+    template = 'stream.html'
+    user = None
+    if username:
+        # 是当前用户，使用user_stream的页面展示当前用户的微博
+        if username == current_user.get_username():
+            template = 'user_stream.html'
+        try:
+            # 找到当前用户名对应的用户
+            for _user in users:
+                if _user.get_username() == username:
+                    # 找到这个用户发的所有微博
+                    user = _user
+                    for post in posts:
+                        if post.username == username:
+                            stream.append(post)
+                    break
+        except:
+            print('user stream exception')
+
+    else:
+        stream = posts[:10] # 热门微博简单地就取posts中前十条
+    return render_template(template, stream=stream, user=user)
 
 
 @app.route('/post')
@@ -127,8 +147,17 @@ def unfollow(username):
     pass
 
 
-
-
-
 if __name__ == '__main__':
+    User.create_user(username='user1', password='123456')
+    User.create_user(username='user2', password='123456')
+    post_1 = Post(text='text 1 from user1', username='user1')
+    posts.append(post_1)
+    post_2 = Post(text='text 2 from user1', username='user1')
+    posts.append(post_2)
+    post_3 = Post(text='text 1 from user2', username='user2')
+    posts.append(post_3)
     app.run(debug=True)
+
+
+
+
