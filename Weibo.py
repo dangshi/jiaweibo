@@ -6,7 +6,9 @@ from flask_login import LoginManager, login_required, login_user, logout_user, c
 
 from Models import User, Post
 from Models import users, get_user, posts   # 用list实现，未使用gstore
-from Forms import LoginForm
+from Forms import LoginForm, RegisterForm
+
+from gstore.queryDB import gstore_user_login, gstore_user_register
 
 app = Flask(__name__)
 
@@ -48,9 +50,24 @@ def load_user(user_id):
 
 @app.route('/register', methods=('GET', 'POST'))
 def register():
-    # TODO
     # 这里需要创建用户并且加入数据库中
-    return 'create user !'
+    form = RegisterForm()
+    username = form.username.data
+    password = form.password.data
+    repassword = form.repassword.data
+    if password != repassword:
+        print("密码不一致")
+        # TODO
+        pass
+    elif username and password and repassword:
+        respon = gstore_user_register(username, password)
+        if respon["status"] == "OK":
+            return redirect(url_for('index'))
+        else:
+            print("注册失败")
+            return render_template('register.html', form=form)
+            # TODO
+    return render_template('register.html', form=form)
 
 
 @app.route('/login', methods=('GET', 'POST'))
@@ -60,14 +77,12 @@ def login():
     用户通过验证后，通过login_user()函数来登入
     """
     form = LoginForm()
-    if form.validate_on_submit():
-        try:
-            for user in users:
-                if user.get_username() == form.username.data:
-                    login_user(user)
-                    return redirect(url_for('index'))
-        except:
-            print('some exception')
+    username = form.username.data
+    password = form.password.data
+    if username and password:
+        respon = gstore_user_login(username, password)
+        if respon["status"] == "OK":
+            return redirect(url_for('index'))
     return render_template('login.html', form=form)
 
 
@@ -88,7 +103,7 @@ def stream(username = None):
     获得stream
     如果是username不为none并且username不是current user相同，则返回username对应用户的微博列表
     如果username不为none并且就是current user，则返回用户的首页（所关注人的微博）
-    如果username为none，返回任何用户的最新n条微博 
+    如果username为none，返回任何用户的最新n条微博
     """
     stream = []
     template = 'stream.html'
@@ -120,7 +135,7 @@ def stream(username = None):
 def post():
     """
     发布一条新的微博
-    :return: 
+    :return:
     """
     return('page to publish post')
 
@@ -148,16 +163,7 @@ def unfollow(username):
 
 
 if __name__ == '__main__':
-    User.create_user(username='user1', password='123456')
-    User.create_user(username='user2', password='123456')
-    post_1 = Post(text='text 1 from user1', username='user1')
-    posts.append(post_1)
-    post_2 = Post(text='text 2 from user1', username='user1')
-    posts.append(post_2)
-    post_3 = Post(text='text 1 from user2', username='user2')
-    posts.append(post_3)
     app.run(debug=True)
-
 
 
 
