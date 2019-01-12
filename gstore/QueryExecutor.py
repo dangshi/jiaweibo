@@ -1,4 +1,4 @@
-from GstoreConnector import GstoreConnector
+from gstore.GstoreConnector import GstoreConnector
 
 defaultServerIP = "127.0.0.1"
 defaultServerPort = "3305"
