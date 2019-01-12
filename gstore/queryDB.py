@@ -20,6 +20,7 @@ def _generate_uid():
         if len(retjson["results"]["bindings"]) == 0:
             return rand
 
+'''get userid url'''
 def _get_userid(username):
     sparql = "select ?s where {?s <http://localhost:2020/vocab/user_name> \"" + username + "\".}"
     ret = qe.execute(sparql)
@@ -29,6 +30,7 @@ def _get_userid(username):
     else :
         return retjson["results"]["bindings"][0]['s']['value']
 
+'''get username string'''
 def _get_username(userid):
     sparql = "select ?o where {<http://localhost:2020/user/" + str(userid) + "> <http://localhost:2020/vocab/user_name> ?o.}"
     ret = qe.execute(sparql)
@@ -38,6 +40,32 @@ def _get_username(userid):
     else:
         return retjson["results"]["bindings"][0]['o']['value']
 
+def _get_follwee(username):
+    useridurl = _get_userid(username)
+    userid = useridurl.split('/')[-1]
+    sparql = "select ?s where {?s <http://localhost:2020/vocab/userrelation_suid> \"" + userid + "\"}"
+    ret = qe.execute(sparql)
+    retjson = json.loads(ret)
+    result = []
+    list_follow = retjson["results"]["bindings"]
+    for follow in list_follow:
+        str_to_proc = follow['s']['value']
+        followerid = str_to_proc.split("/")[-1]
+        followername = _get_username(followerid)
+        result.append(followername)
+    return result
+
+def _is_follow(fan, celebrity):
+    fanidurl = _get_userid(fan)
+    fanid = fanidurl.split("/")[-1]
+    celebrityidurl = _get_userid(celebrity)
+    celebrityid = celebrityidurl.split("/")[-1]
+    sparql = "select ?s {<http://localhost:2020/userrelation/" + fanid + "/" + celebrityid + "> <http://localhost:2020/vocab/userrelation_suid> \"" + fanid + "\" }"
+    ret = qe.execute(sparql)
+    retjson = json.loads(ret)
+    if len(retjson["results"]["bindings"]) == 0:
+        return False
+    else: return True
 
 def gstore_user_register(username, password):
     sparql = "select ?s where {?s <http://localhost:2020/vocab/user_name> \"" + username + "\".}"
@@ -77,8 +105,10 @@ def gstore_user_login(username, password):
         retdict = {'status': 'FAIL', 'msg': '密码错误', 'result': []}
         return retdict
 
-def gstore_user_weibo(username, offset, size):
+def gstore_user_weibo(username, offset = 0, size = -1):
     useridurl = _get_userid(username)
+    if (useridurl == None):
+        return {"status": "OK", "msg": "查询成功", "result": []}
     userid = useridurl.split('/')[-1]
     sparql = "select ?s  where {?s <http://localhost:2020/vocab/weibo_uid> ?o . FILTER regex(?o, '" + userid + "')}"
     ret = qe.execute(sparql)
@@ -102,8 +132,90 @@ def gstore_user_weibo(username, offset, size):
             entry = {"username": username, "content": content, "post_time": time}
             result.append(entry)
         result.sort(key=lambda k: (k.get('post_time', 0)))
-        result = result[offset: offset+size]
-    return result
+        result.reverse()
+        if (size != -1):
+            result = result[offset: offset+size]
+        retdict = {"status": "OK", "msg": "查询成功", "result": result}
+        return retdict
+####################################################################################
+def gstore_user_following_weibo(username, offset = 0, size = -1):
+    useridurl = _get_userid(username)
+    userid = useridurl.split('/')[-1]
+    sparql = "select ?s where {?s <http://localhost:2020/vocab/userrelation_suid> \"" + userid + "\"}"
+    ret = qe.execute(sparql)
+    retjson = json.loads(ret)
+    result = []
+    if len(retjson["results"]["bindings"]) == 0:
+        retdict = {"status": "OK",  "msg":"查询成功", "result":[]}
+        return retdict
+    else:
+        list_follow = retjson["results"]["bindings"]
+        for follow in list_follow:
+            str_to_proc = follow['s']['value']
+            followerid = str_to_proc.split("/")[-1]
+            followername = _get_username(followerid)
+            result += gstore_user_weibo(followername)['result']
+        result.sort(key=lambda k: (k.get('post_time', 0)))
+        result.reverse()
+        if (size != -1):
+            result = result[offset: offset + size]
+        retdict = {"status": "OK", "msg": "查询成功", "result": result}
+        return retdict
+
+# {
+#   "status": "OK",  # "OK","FAIL",
+#   "msg":"查询成功", # 是否成功，失败原因
+#   "result":{
+#     "posts_num":12, #发帖数
+#     "following":1, # 关注的人数
+#     "followed":1, # 粉丝人数
+#   }
+# }
+def gstore_user_info(username):
+    userweibo = gstore_user_weibo(username)['result']
+    weibocnt = len(userweibo)
+    useridurl = _get_userid(username)
+    userid = useridurl.split('/')[-1]
+    sparql = "select ?s where {?s <http://localhost:2020/vocab/userrelation_suid> \"" + userid + "\"}"
+    ret = qe.execute(sparql)
+    retjson = json.loads(ret)
+    nfollows =  len(retjson["results"]["bindings"])
+    sparql = "select ?s where {?s <http://localhost:2020/vocab/userrelation_tuid> \"" + userid + "\"}"
+    ret = qe.execute(sparql)
+    retjson = json.loads(ret)
+    nfollowers = len(retjson["results"]["bindings"])
+    retdict = {"status": "OK", "msg": "查询成功", "result": {"posts_num":weibocnt, "following": nfollows, "followed": nfollowers}}
+    return retdict
+
+# {
+#   "status": "OK",  # "OK","FAIL",
+#   "msg":"操作成功", # 是否成功，失败原因
+#   "result":[]
+# }
+def gstore_add_follow(fan, celebrity):
+    # sparql = "insert data { <http://localhost:2020/user/" + str(uid) + "> <http://localhost:2020/vocab/password> \"" + password + "\".}"
+    fanidurl = _get_userid(fan)
+    fanid = fanidurl.split("/")[-1]
+    celebrityidurl = _get_userid(celebrity)
+    celebrityid = celebrityidurl.split("/")[-1]
+    sparql = "insert data {<http://localhost:2020/userrelation/" + fanid + "/" + celebrityid + "> <http://localhost:2020/vocab/userrelation_suid> \"" + fanid + "\" }"
+    qe.execute(sparql)
+    sparql = "insert data {<http://localhost:2020/userrelation/" + fanid + "/" + celebrityid + "> <http://localhost:2020/vocab/userrelation_tuid> \"" + celebrityid + "\" }"
+    qe.execute(sparql)
+    retdict = {"status": "OK", "msg": "操作成功", "result": []}
+    return retdict
+
+def gstore_remove_follow(fan, celebrity):
+    fanidurl = _get_userid(fan)
+    fanid = fanidurl.split("/")[-1]
+    celebrityidurl = _get_userid(celebrity)
+    celebrityid = celebrityidurl.split("/")[-1]
+    sparql = "delete data {<http://localhost:2020/userrelation/" + fanid + "/" + celebrityid + "> <http://localhost:2020/vocab/userrelation_suid> \"" + fanid + "\" }"
+    ret = qe.execute(sparql)
+    sparql = "delete data {<http://localhost:2020/userrelation/" + fanid + "/" + celebrityid + "> <http://localhost:2020/vocab/userrelation_tuid> \"" + celebrityid + "\" }"
+    qe.execute(sparql)
+    retdict = {"status": "OK", "msg": "操作成功", "result": []}
+    return retdict
 
 if __name__ == '__main__':
     # ret = gstore_user_register("afucsjker", "123")
@@ -116,7 +228,15 @@ if __name__ == '__main__':
     # sparql = "select ?p ?o where{ <http://localhost:2020/weibo/3708696074833794> <http://localhost:2020/vocab/weibo_date> ?o.    	}"
     # ret = qe.execute(sparql)
     # ret = json.loads(ret)
-    name = _get_username("1914410112")
+    # name = _get_username("1914410112")
     # ret = _get_userid("DongShan_")
-    ret = gstore_user_weibo(name, 0, 1)
-    print(ret)
+    # ret = gstore_user_weibo(name, 0, 1)
+    # ret = _get_follwee("Jing_Mini_Shop")
+    # print(ret)
+    # tmp = ret[2]
+    # gstore_remove_follow("Jing_Mini_Shop", tmp)
+    # ret = _get_follwee("Jing_Mini_Shop")
+    # gstore_add_follow("Jing_Mini_Shop", tmp)
+    # ret = _get_follwee("Jing_Mini_Shop")
+    ret = gstore_user_following_weibo("Jing_Mini_Shop", 0, 10)
+    print("1")
