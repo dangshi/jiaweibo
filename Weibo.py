@@ -8,7 +8,7 @@ from Models import User, Post
 from Models import users, get_user, posts   # 用list实现，未使用gstore
 from Forms import LoginForm, RegisterForm
 
-from gstore.queryDB import gstore_user_login, gstore_user_register
+from gstore.queryDB import gstore_user_login, gstore_user_register, gstore_user_weibo, gstore_add_follow, gstore_remove_follow
 
 app = Flask(__name__)
 
@@ -57,7 +57,7 @@ def register():
     repassword = form.repassword.data
     if password != repassword:
         print("密码不一致")
-        # TODO
+        flash("Your password doesn't match!", "error")
         pass
     elif username and password and repassword:
         respon = gstore_user_register(username, password)
@@ -65,8 +65,8 @@ def register():
             return redirect(url_for('index'))
         else:
             print("注册失败")
+            flash("Register failed!", "error")
             return render_template('register.html', form=form)
-            # TODO
     return render_template('register.html', form=form)
 
 
@@ -81,8 +81,16 @@ def login():
     password = form.password.data
     if username and password:
         respon = gstore_user_login(username, password)
+        # TODO
+        # userid = respon["result"]["userid"]
+        userid = 1546
         if respon["status"] == "OK":
+            User.create_user(userid,username, password)
+            user = get_user(userid)
+            login_user(user)
             return redirect(url_for('index'))
+        else:
+            flash("Login failed!", "error")
     return render_template('login.html', form=form)
 
 
@@ -112,18 +120,14 @@ def stream(username = None):
         # 是当前用户，使用user_stream的页面展示当前用户的微博
         if username == current_user.get_username():
             template = 'user_stream.html'
-        try:
-            # 找到当前用户名对应的用户
-            for _user in users:
-                if _user.get_username() == username:
-                    # 找到这个用户发的所有微博
-                    user = _user
-                    for post in posts:
-                        if post.username == username:
-                            stream.append(post)
-                    break
-        except:
-            print('user stream exception')
+        # username 对应的weibo
+        response = gstore_user_weibo(username, offset=0, size=10)
+        if response["status"] != "OK":
+            print("fail for get weibo of username:", username)
+        stream = list()
+        for item in response["result"]:
+            post = Post(item["content"], item["username"], item["post_time"])
+            stream.append(post)
 
     else:
         stream = posts[:10] # 热门微博简单地就取posts中前十条
@@ -148,7 +152,12 @@ def follow(username):
     :param username: 想关注的用户名
     :return: 被关注用户的stream
     """
-    pass
+    response = gstore_add_follow(current_user.username, username)
+    if(response["status"] == "OK"):
+        flash("关注用户: "+str(username), "Success")
+    else:
+        flash("关注失败",  "error")
+    return redirect(url_for('stream', username=username))
 
 
 @app.route('/unfollow/<username>')
@@ -159,7 +168,12 @@ def unfollow(username):
     :param username: 取关用户的用户名
     :return: 当前用户的首页
     """
-    pass
+    response = gstore_remove_follow(current_user.username, username)
+    if (response["status"] == "OK"):
+        flash("取消关注用户: " + str(username), "Success")
+    else:
+        flash("取消关注操作失败", "error")
+    return redirect(url_for('stream', username=username))
 
 
 if __name__ == '__main__':

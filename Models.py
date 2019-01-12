@@ -39,16 +39,16 @@ class User(UserMixin):
         return self._username
 
     @classmethod
-    def create_user(cls, username, password):
-        cls(len(users), username, password)
+    def create_user(cls,userid, username, password):
+        cls(userid, username, password)
         return cls
 
 
 class Post():
-    def __init__(self, text, username):
+    def __init__(self, text, username, timestamp):
         self.content = text
         self.username = username
-        self.timestamp = datetime.datetime.now()
+        self.timestamp = timestamp
 
 
 class Relation():
