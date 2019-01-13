@@ -10,6 +10,7 @@ from Forms import LoginForm, RegisterForm
 
 from gstore.queryDB import gstore_user_login, gstore_user_register, gstore_user_weibo, gstore_add_follow, gstore_remove_follow
 
+
 app = Flask(__name__)
 
 # flask-wtf框架处理表单时止CSRF攻击的机制

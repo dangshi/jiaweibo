@@ -20,6 +20,15 @@ def _generate_uid():
         if len(retjson["results"]["bindings"]) == 0:
             return rand
 
+def _generate_weiboid():
+    while (True):
+        rand = random.randint(10000000000000, 99999999999999)
+        sparql = "select ?o where {<http://localhost:2020/weibo/" + str(rand) + "> <http://localhost:2020/vocab/weibo_uid> ?o.}"
+        ret = qe.execute(sparql)
+        retjson = json.loads(ret)
+        if len(retjson["results"]["bindings"]) == 0:
+            return rand
+
 '''get userid url'''
 def _get_userid(username):
     sparql = "select ?s where {?s <http://localhost:2020/vocab/user_name> \"" + username + "\".}"
@@ -98,11 +107,12 @@ def gstore_user_login(username, password):
         retdict = {'status': 'FAIL', 'msg': '没有这个人的密码', 'result': []}
         return retdict
     pwd = retjson["results"]["bindings"][0]['o']['value']
+    userid = uid.split('/')[-1]
     if (pwd == password):
         retdict = {'status': 'OK', 'msg': '登录成功', 'result': []}
         return retdict
     else:
-        retdict = {'status': 'FAIL', 'msg': '密码错误', 'result': []}
+        retdict = {'status': 'FAIL', 'msg': '密码错误', 'result': {'userid': userid}}
         return retdict
 
 def gstore_user_weibo(username, offset = 0, size = -1):
@@ -137,7 +147,7 @@ def gstore_user_weibo(username, offset = 0, size = -1):
             result = result[offset: offset+size]
         retdict = {"status": "OK", "msg": "查询成功", "result": result}
         return retdict
-####################################################################################
+
 def gstore_user_following_weibo(username, offset = 0, size = -1):
     useridurl = _get_userid(username)
     userid = useridurl.split('/')[-1]
@@ -217,6 +227,44 @@ def gstore_remove_follow(fan, celebrity):
     retdict = {"status": "OK", "msg": "操作成功", "result": []}
     return retdict
 
+def gstore_post_weibo(username, content, post_time):
+    useridurl = _get_userid(username)
+    if (useridurl == None):
+        return {"status": "FAIL", "msg": "wrong username", "result": []}
+    weiboid = str(_generate_weiboid())
+    userid = useridurl.split('/')[-1]
+    sparql = "insert data {<http://localhost:2020/weibo/" + weiboid + "> <http://localhost:2020/vocab/weibo_uid> \"" + userid + "\" }"
+    ret = qe.execute(sparql)
+    sparql = "insert data {<http://localhost:2020/weibo/" + weiboid + "> <http://localhost:2020/vocab/weibo_text> \"" + content + "\" }"
+    ret = qe.execute(sparql)
+    sparql = "insert data {<http://localhost:2020/weibo/" + weiboid + "> <http://localhost:2020/vocab/weibo_date> \"" + post_time + "\" }"
+    ret = qe.execute(sparql)
+
+    retdict = {"status": "OK", "msg": "查询成功", "result": []}
+    return retdict
+
+def gstore_hit_weibo(offset, size):
+    sparql = "select ?s ?o where {?s <http://localhost:2020/vocab/weibo_date> ?o.} order by DESC(?o) limit "+str(size) + " offset " + str(offset)
+    ret = qe.execute(sparql)
+    retjson = json.loads(ret)
+    list_weibo = retjson['results']['bindings']
+    result = []
+    for weibodata in list_weibo:
+        weibourl = weibodata['s']['value']
+        time = weibodata['o']['value']
+        sparql = "select ?o where {<" + weibourl + "> <http://localhost:2020/vocab/weibo_text> ?o }"
+        ret = qe.execute(sparql)
+        tmpjson = json.loads(ret)
+        content = tmpjson['results']['bindings'][0]['o']['value']
+        sparql = "select ?o where {<" + weibourl + "> <http://localhost:2020/vocab/weibo_uid> ?o }"
+        ret = qe.execute(sparql)
+        tmpjson = json.loads(ret)
+        uid = tmpjson['results']['bindings'][0]['o']['value']
+        username = _get_username(uid)
+        result.append({"username": username, "content": content, "post_time": time})
+    retdict = {"status": "OK", "msg": "查询成功", "result": result}
+    return retdict
+
 if __name__ == '__main__':
     # ret = gstore_user_register("afucsjker", "123")
     # sparql = """select ?s where {?s ?p "afucsjker".}"""
@@ -238,5 +286,9 @@ if __name__ == '__main__':
     # ret = _get_follwee("Jing_Mini_Shop")
     # gstore_add_follow("Jing_Mini_Shop", tmp)
     # ret = _get_follwee("Jing_Mini_Shop")
-    ret = gstore_user_following_weibo("Jing_Mini_Shop", 0, 10)
+    # ret = gstore_user_weibo("Jing_Mini_Shop")
+    # gstore_post_weibo("Jing_Mini_Shop", "sdfajldsjkfl", "lfdskfjioajf")
+    # ret = gstore_user_weibo("Jing_Mini_Shop")
+    ret = gstore_hit_weibo(0, 10)
+    #'2014-04-30T15:53:35'
     print("1")
