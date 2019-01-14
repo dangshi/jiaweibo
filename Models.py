@@ -57,6 +57,8 @@ class Post():
     def __init__(self, text, username, timestamp):
         self.content = text
         self.username = username
+        if(timestamp[10] == 'T'):
+            timestamp = timestamp.replace("T", " ")
         self.timestamp = timestamp
 
 

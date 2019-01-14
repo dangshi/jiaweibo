@@ -9,7 +9,7 @@ from Models import users, get_user, posts, get_user_by_name
 from Forms import LoginForm, RegisterForm, PostForm
 
 from gstore.queryDB import gstore_user_login, gstore_user_register, gstore_user_weibo, gstore_add_follow, \
-    gstore_remove_follow, gstore_post_weibo
+    gstore_remove_follow, gstore_post_weibo, gstore_hit_weibo
 import datetime
 
 app = Flask(__name__)
@@ -32,7 +32,15 @@ def hello_world():
 
 @app.route('/index')
 def index():
-    return 'welcome back to index page !'
+    response = gstore_hit_weibo(0,10)
+    if response["status"] != "OK":
+        print("Failed for get hit weibo")
+    stream = list()
+    for item in response["result"]:
+        post = Post(item["content"], item["username"], item["post_time"])
+        stream.append(post)
+    return render_template("stream.html", stream=stream)
+
 
 
 @login_manager.user_loader
