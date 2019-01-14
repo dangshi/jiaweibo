@@ -5,11 +5,12 @@ from flask import redirect, url_for, render_template, flash
 from flask_login import LoginManager, login_required, login_user, logout_user, current_user
 
 from Models import User, Post
-from Models import users, get_user, posts   # 用list实现，未使用gstore
-from Forms import LoginForm, RegisterForm
+from Models import users, get_user, posts, get_user_by_name
+from Forms import LoginForm, RegisterForm, PostForm
 
-from gstore.queryDB import gstore_user_login, gstore_user_register, gstore_user_weibo, gstore_add_follow, gstore_remove_follow
-
+from gstore.queryDB import gstore_user_login, gstore_user_register, gstore_user_weibo, gstore_add_follow, \
+    gstore_remove_follow, gstore_post_weibo
+import datetime
 
 app = Flask(__name__)
 
@@ -82,14 +83,13 @@ def login():
     password = form.password.data
     if username and password:
         respon = gstore_user_login(username, password)
-        # TODO
-        # userid = respon["result"]["userid"]
-        userid = 1546
         if respon["status"] == "OK":
+            print(respon)
+            userid = respon["result"]["userid"]
             User.create_user(userid,username, password)
             user = get_user(userid)
             login_user(user)
-            return redirect(url_for('index'))
+            return redirect(url_for('stream', username=username))
         else:
             flash("Login failed!", "error")
     return render_template('login.html', form=form)
@@ -105,8 +105,8 @@ def logout():
     return redirect(url_for('index'))
 
 
-@app.route('/stream')
-@app.route('/stream/<username>')
+@app.route('/stream', methods=['GET', 'POST'])
+@app.route('/stream/<username>', methods=['GET', 'POST'])
 def stream(username = None):
     """
     获得stream
@@ -119,6 +119,7 @@ def stream(username = None):
     user = None
     if username:
         # 是当前用户，使用user_stream的页面展示当前用户的微博
+        user = get_user_by_name(username)
         if username == current_user.get_username():
             template = 'user_stream.html'
         # username 对应的weibo
@@ -129,20 +130,32 @@ def stream(username = None):
         for item in response["result"]:
             post = Post(item["content"], item["username"], item["post_time"])
             stream.append(post)
+        return render_template(template, stream=stream, user=user)
 
     else:
         stream = posts[:10] # 热门微博简单地就取posts中前十条
-    return render_template(template, stream=stream, user=user)
+        return render_template(template, stream=stream, user=user)
 
 
-@app.route('/post')
+@app.route('/post',  methods=['GET', 'POST'])
 @login_required
 def post():
     """
     发布一条新的微博
     :return:
     """
-    return('page to publish post')
+    now = datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
+    form = PostForm()
+    if form.content.data:
+        response = gstore_post_weibo(current_user.get_username(),form.content.data, now)
+
+        if(response["status"] == "OK"):
+            flash('Your Message has been posted!', 'Success')
+            return redirect(url_for('stream/'+current_user.get_username()))
+        else:
+            flash("Post failed", 'error')
+
+    return render_template('post.html', form = form)
 
 
 @app.route('/follow/<username>')

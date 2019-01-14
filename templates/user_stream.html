@@ -12,11 +12,11 @@
         </div>
         <div class="grid-33">
             <h5>Followers</h5>
-            <p>{{ user.followers().count() }}</p>
+            <p>{{ user.followers()|length}}</p>
         </div>
         <div class="grid-33">
             <h5>Following</h5>
-            <p>{{ user.following().count() }}</p>
+            <p>{{ user.following()|length}}</p>
         </div>
     </div>
     <div class="grid-25">

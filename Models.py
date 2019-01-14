@@ -10,6 +10,10 @@ def get_user(user_id):
     for user in users:
         if user.get_id() == user_id:
             return user
+def get_user_by_name(name):
+    for user in users:
+        if user.get_username() == name:
+            return user
 
 
 class User(UserMixin):
@@ -43,6 +47,11 @@ class User(UserMixin):
         cls(userid, username, password)
         return cls
 
+    def followers(self):
+        return []
+
+    def following(self):
+        return []
 
 class Post():
     def __init__(self, text, username, timestamp):

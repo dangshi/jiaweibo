@@ -109,10 +109,10 @@ def gstore_user_login(username, password):
     pwd = retjson["results"]["bindings"][0]['o']['value']
     userid = uid.split('/')[-1]
     if (pwd == password):
-        retdict = {'status': 'OK', 'msg': '登录成功', 'result': []}
+        retdict = {'status': 'OK', 'msg': '登录成功', 'result': {'userid': userid}}
         return retdict
     else:
-        retdict = {'status': 'FAIL', 'msg': '密码错误', 'result': {'userid': userid}}
+        retdict = {'status': 'FAIL', 'msg': '密码错误', 'result':[]}
         return retdict
 
 def gstore_user_weibo(username, offset = 0, size = -1):
