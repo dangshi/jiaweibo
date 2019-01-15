@@ -29,19 +29,30 @@ login_manager.init_app(app)
 
 @app.route('/')
 def hello_world():
-    return 'Hello World!'
+    return url_for("index")
 
 
-@app.route('/index')
+@app.route('/index',methods=['GET', 'POST'])
 def index():
-    response = gstore_hit_weibo(0,10)
+    page = request.args.get('p', '1')
+    if not page:
+        page = 1
+    limit = request.args.get('limit', '10')
+    if not limit:
+        limit = 10
+    limit = int(limit)
+    page = int(page)
+    offset = (page - 1) * limit
+    response = gstore_hit_weibo(offset,limit)
     if response["status"] != "OK":
         print("Failed for get hit weibo")
     stream = list()
     for item in response["result"]:
         post = Post(item["content"], item["username"], item["post_time"])
         stream.append(post)
-    return render_template("stream.html", stream=stream)
+
+    total = 100
+    return render_template("index.html", stream=stream, total=total, limit=limit, current_page=page, url="index")
 
 
 
@@ -141,10 +152,21 @@ def stream(username = None):
     如果username不为none并且就是current user，则返回用户的首页（所关注人的微博）
     如果username为none，返回任何用户的最新n条微博
     """
+    page = request.args.get('p', '1')
+    if not page:
+        page = 1
+    limit = request.args.get('limit', '10')
+    if not limit:
+        limit = 10
+    limit = int(limit)
+    page = int(page)
+    offset = (page - 1) * limit
+
     stream = []
     template = 'stream.html'
     user = None
-    if username:
+    if current_user:
+        username = current_user.get_username()
         response = gstore_user_info(username)
         if (response["status"] != "OK"):
             print("error occur in getting user info, username:", username)
@@ -154,20 +176,35 @@ def stream(username = None):
         user = User(user_id=result["userid"],username=username, post_num=result["posts_num"], following_num=result["following_num"],
                     followed_num=result["followed_num"])
 
-        response = gstore_user_following_weibo(username, offset=0, size=50)
+        response = gstore_user_following_weibo(username, offset=offset, size=limit)
         if response["status"] != "OK":
             print("fail for get weibo of username:", username)
         stream = list()
         for item in response["result"]:
             post = Post(item["content"], item["username"], item["post_time"])
             stream.append(post)
-        return render_template(template, stream=stream, user=user)
+
+        if len(stream) < limit:
+            total = offset + len(stream)
+        else:
+            total = offset + limit * 2
+        return render_template(template, stream=stream, user=user, total=total, limit=limit, current_page=page, url="stream", username=username)
 
     else:
         return url_for("index")
 
 @app.route('/user_stream/<username>', methods=['GET', 'POST'])
 def user_stream(username=None):
+    page = request.args.get('p', '1')
+    if not page:
+        page = 1
+    limit = request.args.get('limit', '10')
+    if not limit:
+        limit = 10
+    limit = int(limit)
+    page = int(page)
+    offset = (page - 1) * limit
+
     template = 'user_stream.html'
     stream = []
     user = None
@@ -182,14 +219,20 @@ def user_stream(username=None):
                     followed_num=result["followed_num"])
 
         # username 对应的weibo
-        p = current_user.get_following()
-        response = gstore_user_weibo(username, offset=0, size=10)
+        response = gstore_user_weibo(username, offset=offset, size=limit)
         if response["status"] != "OK":
             print("fail for get weibo of username:", username)
         for item in response["result"]:
             post = Post(item["content"], item["username"], item["post_time"])
             stream.append(post)
-        return render_template(template, stream=stream, user=user)
+        if len(stream) < limit:
+            total = offset + len(stream)
+        else:
+            total = offset + limit * 2
+        return render_template(template, stream=stream, user=user, total=total, limit=limit, current_page=page,
+                               url="user_stream", username=username)
+    else:
+        return url_for("index")
 
 
 

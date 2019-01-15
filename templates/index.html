@@ -1,3 +1,22 @@
+<style>
+ul.pagination {
+    display: inline-block;
+    padding: 0;
+    margin: 0;
+}
+
+ul.pagination li {display: inline;}
+
+ul.pagination li a {
+    color: black;
+    float: left;
+    padding: 8px 16px;
+    text-decoration: none;
+}
+</style>
+
+
+{% extends 'layout.html' %}
 {% macro render_field(field) %}
     <div class="field">
         {% if field.errors %}
@@ -9,7 +28,7 @@
     </div>
 {% endmacro %}
 
-{% macro pager(url,username, total, limit, current_page, left_offset=3, right_offset=7) -%}
+{% macro pager(url, total, limit, current_page, left_offset=3, right_offset=7) -%}
  <!--设置前一页和后一页-->
 {% set previous_page = current_page - 1 %}
 {% set previous_page = 1 if previous_page < 1 else previous_page%}
@@ -23,20 +42,20 @@
 
 <ul class="pagination pagination-sm">
     {% if current_page > 1 %}
-    <li><a href="{{ url_for(url, p=1, username=username) }}">首页</a></li>
-    <li><a href="{{ url_for(url, p=previous_page, username=username) }}">&lt;</a></li>
+    <li><a href="{{ url_for(url, p=1) }}">首页</a></li>
+    <li><a href="{{ url_for(url, p=previous_page) }}">&lt;</a></li>
     {%else%}
     <li class="disabled"><a>首页</a></li>
     <li class="disabled"><a>&lt;</a></li>
     {%endif%}
     {% for idx in range(begin_idx, end_idx+1) %}
     <li class="{%if current_page == idx %}active{%endif%}">
-    <a href="{{ url_for(url, p=idx, username=username) }}">{{idx}}</a>
+    <a href="{{ url_for(url, p=idx) }}">{{idx}}</a>
     </li>
     {% endfor %}
     {%if current_page < total %}
-    <li><a href="{{ url_for(url, p=next_page, username=username) }}">&gt;</a></li>
-    <li><a href="{{ url_for(url, p=total, username=username) }}">尾页</a></li>
+    <li><a href="{{ url_for(url, p=next_page) }}">&gt;</a></li>
+    <li><a href="{{ url_for(url, p=total) }}">尾页</a></li>
     {%else%}
     <li
     class="disabled"><a>&gt;</a></li>
@@ -46,3 +65,21 @@
 </ul>
 
 {%- endmacro %}
+
+{% block content %}
+{% for post in stream %}
+    <article>
+        <h2>
+            <a href="{{ url_for('user_stream', username = post.username) }}">{{ post.username }}</a>
+        </h2>
+        <i class="clock"></i><time >{{ post.timestamp }}</time>
+        <div class="post">
+            {{ post.content }}
+        </div>
+     </article>
+{% endfor %}
+{% endblock %}
+
+{% block pages %}
+{{ pager(url, total, limit, current_page) }}
+{% endblock %}

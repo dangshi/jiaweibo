@@ -33,6 +33,6 @@ ul.pagination li a {
 {% endfor %}
 {% endblock %}
 
-{#{% block pages %}#}
-{#{{ pager(total, limit, current_page) }}#}
-{#{% endblock %}#}
+{% block pages %}
+{{ pager(url,username, total, limit, current_page) }}
+{% endblock %}
