@@ -9,7 +9,7 @@ from Models import users, get_user, get_user_by_name
 from Forms import LoginForm, RegisterForm, PostForm
 
 from gstore.queryDB import gstore_user_login, gstore_user_register, gstore_user_weibo, gstore_add_follow, \
-    gstore_remove_follow, gstore_post_weibo, gstore_hit_weibo, gstore_user_info, gstore_user_following_weibo
+    gstore_remove_follow, gstore_post_weibo, gstore_hit_weibo, gstore_user_info, gstore_user_following_weibo, gstore_user_detail_info
 import datetime
 
 app = Flask(__name__)
@@ -94,9 +94,16 @@ def login():
         if respon["status"] == "OK":
             print(respon)
             userid = respon["result"]["userid"]
-            # User.create_user(userid,username, password)
-            # user = get_user(userid)
             user = User(userid,username, password)
+            response = gstore_user_detail_info(username)
+            if (response["status"] != "OK"):
+                print("error occur in getting user info, username:", username)
+                flash("User don't exist", "error")
+                return
+            result = response["result"]
+            user = User(user_id=userid, username=username, post_num=result["posts_num"],
+                        following_num=result["following_num"],
+                        followed_num=result["followed_num"], followed=result["followed"], following=result["following"])
             login_user(user)
             return redirect(url_for('stream', username=username))
         else:
@@ -133,8 +140,8 @@ def stream(username = None):
             flash("User don't exist", "error")
             return
         result = response["result"]
-        user = User(user_id="3123",username=username, post_num=result["posts_num"], following_num=result["following"],
-                    followed_num=result["followed"])
+        user = User(user_id=result["userid"],username=username, post_num=result["posts_num"], following_num=result["following_num"],
+                    followed_num=result["followed_num"])
 
         response = gstore_user_following_weibo(username, offset=0, size=50)
         if response["status"] != "OK":
@@ -160,7 +167,8 @@ def user_stream(username=None):
             flash("User don't exist", "error")
             return
         result = response["result"]
-        user = User(user_id="3123",username=username, post_num=result["posts_num"], following_num=result["following"], followed_num=result["followed"])
+        user = User(user_id=result["userid"],username=username, post_num=result["posts_num"], following_num=result["following_num"],
+                    followed_num=result["followed_num"])
 
         # username 对应的weibo
         response = gstore_user_weibo(username, offset=0, size=10)
@@ -225,6 +233,47 @@ def unfollow(username):
     else:
         flash("取消关注操作失败", "error")
     return redirect(url_for('user_stream', username=username))
+
+
+
+@app.route('/user_following/<username>', methods=['GET', 'POST'])
+@login_required
+def show_following(username):
+    template = "follow_list.html"
+    response = gstore_user_detail_info(username)
+    if(response["status"] != "OK"):
+        flash("Failed for searching user:", username)
+    following = response["result"]["following"]
+    following_users = list()
+    for name in following:
+        resp = gstore_user_info(name)
+        if(resp["status"] == "OK"):
+            result = resp["result"]
+            user = User(result["userid"],name, post_num=result["posts_num"],
+                        following_num=result["following_num"], followed_num=result["followed_num"])
+            following_users.append(user)
+
+    return render_template(template, users=following_users)
+
+
+@app.route('/user_followed/<username>', methods=['GET', 'POST'])
+@login_required
+def show_followed(username):
+    template = "follow_list.html"
+    response = gstore_user_detail_info(username)
+    if (response["status"] != "OK"):
+        flash("Failed for searching user:", username)
+    followed = response["result"]["followed"]
+    followed_users = list()
+    for name in followed:
+        resp = gstore_user_info(name)
+        if (resp["status"] == "OK"):
+            result = resp["result"]
+            user = User(result["userid"],name, post_num=result["posts_num"],
+                        following_num=result["following_num"], followed_num=result["followed_num"])
+            followed_users.append(user)
+
+    return render_template(template, users=followed_users)
 
 
 if __name__ == '__main__':

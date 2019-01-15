@@ -182,19 +182,57 @@ def gstore_user_following_weibo(username, offset = 0, size = -1):
 #   }
 # }
 def gstore_user_info(username):
-    userweibo = gstore_user_weibo(username)['result']
-    weibocnt = len(userweibo)
-    useridurl = _get_userid(username)
-    userid = useridurl.split('/')[-1]
-    sparql = "select ?s where {?s <http://localhost:2020/vocab/userrelation_suid> \"" + userid + "\"}"
-    ret = qe.execute(sparql)
-    retjson = json.loads(ret)
-    nfollows =  len(retjson["results"]["bindings"])
-    sparql = "select ?s where {?s <http://localhost:2020/vocab/userrelation_tuid> \"" + userid + "\"}"
-    ret = qe.execute(sparql)
-    retjson = json.loads(ret)
-    nfollowers = len(retjson["results"]["bindings"])
-    retdict = {"status": "OK", "msg": "查询成功", "result": {"posts_num":weibocnt, "following": nfollows, "followed": nfollowers}}
+    try:
+        userweibo = gstore_user_weibo(username)['result']
+        weibocnt = len(userweibo)
+        useridurl = _get_userid(username)
+        userid = useridurl.split('/')[-1]
+        sparql = "select ?s where {?s <http://localhost:2020/vocab/userrelation_suid> \"" + userid + "\"}"
+        ret = qe.execute(sparql)
+        retjson = json.loads(ret)
+        nfollows =  len(retjson["results"]["bindings"])
+
+        sparql = "select ?s where {?s <http://localhost:2020/vocab/userrelation_tuid> \"" + userid + "\"}"
+        ret = qe.execute(sparql)
+        retjson = json.loads(ret)
+        nfollowers = len(retjson["results"]["bindings"])
+        retdict = {"status": "OK", "msg": "查询成功", "result": {"userid":userid,"posts_num":weibocnt, "following_num": nfollows, "followed_num": nfollowers}}
+    except Exception as e:
+        retdict = {"status":"FAIL", "msg":"查询失败", "result":""}
+    return retdict
+
+def gstore_user_detail_info(username):
+    try:
+        userweibo = gstore_user_weibo(username)['result']
+        weibocnt = len(userweibo)
+        useridurl = _get_userid(username)
+        userid = useridurl.split('/')[-1]
+        sparql = "select ?s where {?s <http://localhost:2020/vocab/userrelation_suid> \"" + userid + "\"}"
+        ret = qe.execute(sparql)
+        retjson = json.loads(ret)
+        nfollows =  len(retjson["results"]["bindings"])
+        following = list()
+        for item in retjson["results"]["bindings"]:
+            str_to_proc = item['s']['value']
+            followerid = str_to_proc.split("/")[-1]
+            followername = _get_username(followerid)
+            following.append(followername)
+
+        sparql = "select ?s where {?s <http://localhost:2020/vocab/userrelation_tuid> \"" + userid + "\"}"
+        ret = qe.execute(sparql)
+        retjson = json.loads(ret)
+        nfollowers = len(retjson["results"]["bindings"])
+        followed = list()
+        for item in retjson["results"]["bindings"]:
+            str_to_proc = item['s']['value']
+            followerid = str_to_proc.split("/")[-1]
+            followername = _get_username(followerid)
+            followed.append(followername)
+
+        retdict = {"status": "OK", "msg": "查询成功", "result": {"userid":userid,"posts_num":weibocnt, "following_num": nfollows, "followed_num": nfollowers,
+                                                             "following":following, "followed":followed}}
+    except Exception as e:
+        retdict = {"status": "FAIL", "msg": "查询失败", "result": ""}
     return retdict
 
 # {

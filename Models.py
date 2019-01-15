@@ -16,7 +16,7 @@ def get_user_by_name(name):
 
 
 class User(UserMixin):
-    def __init__(self, user_id, username, password="", post_num=0, following_num = 0, followed_num=0):
+    def __init__(self, user_id, username, password="", post_num=0, following_num = 0, followed_num=0, following=[], followed=[]):
         # self = object.__new__(cls)
         self._user_id = user_id
         self._username = username
@@ -25,8 +25,10 @@ class User(UserMixin):
         if password:
             users.append(self)
         self.post_num = post_num
-        self.followintg_num = following_num
+        self.following_num = following_num
         self.followed_num = followed_num
+        self.following = following
+        self.followed = followed
 
     def is_authenticated(self):
         return True
@@ -48,11 +50,11 @@ class User(UserMixin):
     #     cls(userid, username, password)
     #     return cls
 
-    def followers(self):
-        return []
+    def get_followers(self):
+        return self.followed
 
-    def following(self):
-        return []
+    def get_following(self):
+        return self.following
 
 class Post():
     def __init__(self, text, username, timestamp):
