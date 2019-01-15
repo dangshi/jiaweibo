@@ -49,6 +49,16 @@ def _get_username(userid):
     else:
         return retjson["results"]["bindings"][0]['o']['value']
 
+'''get username string'''
+def gstore_get_username(userid):
+    sparql = "select ?o where {<http://localhost:2020/user/" + str(userid) + "> <http://localhost:2020/vocab/user_name> ?o.}"
+    ret = qe.execute(sparql)
+    retjson = json.loads(ret)
+    if len(retjson["results"]["bindings"]) == 0:
+        return None
+    else:
+        return retjson["results"]["bindings"][0]['o']['value']
+
 def _get_follwee(username):
     useridurl = _get_userid(username)
     userid = useridurl.split('/')[-1]
