@@ -4,7 +4,7 @@
 {% for post in stream %}
     <article>
         <h2>
-            <a href="{{ url_for('stream', username = post.username) }}">{{ post.username }}</a>
+            <a href="{{ url_for('user_stream', username = post.username) }}">{{ post.username }}</a>
         </h2>
         <i class="clock"></i><time >{{ post.timestamp }}</time>
         <div class="post">

@@ -8,15 +8,15 @@
     <div class="grid-50">
         <div class="grid-33">
             <h5>Posts</h5>
-            <p>{{ user.posts|length }}</p>
+            <p>{{ user.post_num}}</p>
         </div>
         <div class="grid-33">
             <h5>Followers</h5>
-            <p>{{ user.followers()|length}}</p>
+            <p>{{ user.followed_num }}</p>
         </div>
         <div class="grid-33">
             <h5>Following</h5>
-            <p>{{ user.following()|length}}</p>
+            <p>{{ user.following_num }}</p>
         </div>
     </div>
     <div class="grid-25">
@@ -24,9 +24,9 @@
         {% if current_user.is_authenticated %}
             {% if user != current_user %}
                 {% if not user in current_user.following() %}
-                    <a href="{{ url_for('follow', username = user.username) }}" class="small">Follow</a>
+                    <a href="{{ url_for('follow', username = user.get_username()) }}" class="small">Follow</a>
                 {% else %}
-                     <a href="{{ url_for('unfollow', username = user.username) }}" class="small">Un-Follow</a>
+                     <a href="{{ url_for('unfollow', username = user.get_username()) }}" class="small">Un-Follow</a>
                 {% endif %}
             {% endif %}
         {% endif %}

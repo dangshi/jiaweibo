@@ -5,11 +5,11 @@ from flask import redirect, url_for, render_template, flash
 from flask_login import LoginManager, login_required, login_user, logout_user, current_user
 
 from Models import User, Post
-from Models import users, get_user, posts, get_user_by_name
+from Models import users, get_user, get_user_by_name
 from Forms import LoginForm, RegisterForm, PostForm
 
 from gstore.queryDB import gstore_user_login, gstore_user_register, gstore_user_weibo, gstore_add_follow, \
-    gstore_remove_follow, gstore_post_weibo, gstore_hit_weibo
+    gstore_remove_follow, gstore_post_weibo, gstore_hit_weibo, gstore_user_info, gstore_user_following_weibo
 import datetime
 
 app = Flask(__name__)
@@ -94,8 +94,9 @@ def login():
         if respon["status"] == "OK":
             print(respon)
             userid = respon["result"]["userid"]
-            User.create_user(userid,username, password)
-            user = get_user(userid)
+            # User.create_user(userid,username, password)
+            # user = get_user(userid)
+            user = User(userid,username, password)
             login_user(user)
             return redirect(url_for('stream', username=username))
         else:
@@ -126,12 +127,16 @@ def stream(username = None):
     template = 'stream.html'
     user = None
     if username:
-        # 是当前用户，使用user_stream的页面展示当前用户的微博
-        user = get_user_by_name(username)
-        if username == current_user.get_username():
-            template = 'user_stream.html'
-        # username 对应的weibo
-        response = gstore_user_weibo(username, offset=0, size=10)
+        response = gstore_user_info(username)
+        if (response["status"] != "OK"):
+            print("error occur in getting user info, username:", username)
+            flash("User don't exist", "error")
+            return
+        result = response["result"]
+        user = User(user_id="3123",username=username, post_num=result["posts_num"], following_num=result["following"],
+                    followed_num=result["followed"])
+
+        response = gstore_user_following_weibo(username, offset=0, size=50)
         if response["status"] != "OK":
             print("fail for get weibo of username:", username)
         stream = list()
@@ -141,8 +146,32 @@ def stream(username = None):
         return render_template(template, stream=stream, user=user)
 
     else:
-        stream = posts[:10] # 热门微博简单地就取posts中前十条
+        return url_for("index")
+
+@app.route('/user_stream/<username>', methods=['GET', 'POST'])
+def user_stream(username=None):
+    template = 'user_stream.html'
+    stream = []
+    user = None
+    if username:
+        response = gstore_user_info(username)
+        if(response["status"] != "OK"):
+            print("error occur in getting user info, username:", username)
+            flash("User don't exist", "error")
+            return
+        result = response["result"]
+        user = User(user_id="3123",username=username, post_num=result["posts_num"], following_num=result["following"], followed_num=result["followed"])
+
+        # username 对应的weibo
+        response = gstore_user_weibo(username, offset=0, size=10)
+        if response["status"] != "OK":
+            print("fail for get weibo of username:", username)
+        for item in response["result"]:
+            post = Post(item["content"], item["username"], item["post_time"])
+            stream.append(post)
         return render_template(template, stream=stream, user=user)
+
+
 
 
 @app.route('/post',  methods=['GET', 'POST'])
@@ -166,7 +195,7 @@ def post():
     return render_template('post.html', form = form)
 
 
-@app.route('/follow/<username>')
+@app.route('/follow/<username>',  methods=['GET', 'POST'])
 @login_required
 def follow(username):
     """
@@ -174,15 +203,15 @@ def follow(username):
     :param username: 想关注的用户名
     :return: 被关注用户的stream
     """
-    response = gstore_add_follow(current_user.username, username)
+    response = gstore_add_follow(current_user.get_username(), username)
     if(response["status"] == "OK"):
         flash("关注用户: "+str(username), "Success")
     else:
         flash("关注失败",  "error")
-    return redirect(url_for('stream', username=username))
+    return redirect(url_for('user_stream', username=username))
 
 
-@app.route('/unfollow/<username>')
+@app.route('/unfollow/<username>', methods=['GET', 'POST'])
 @login_required
 def unfollow(username):
     """
@@ -190,12 +219,12 @@ def unfollow(username):
     :param username: 取关用户的用户名
     :return: 当前用户的首页
     """
-    response = gstore_remove_follow(current_user.username, username)
+    response = gstore_remove_follow(current_user.get_username(), username)
     if (response["status"] == "OK"):
         flash("取消关注用户: " + str(username), "Success")
     else:
         flash("取消关注操作失败", "error")
-    return redirect(url_for('stream', username=username))
+    return redirect(url_for('user_stream', username=username))
 
 
 if __name__ == '__main__':

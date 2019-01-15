@@ -4,7 +4,6 @@ import datetime
 from flask_login import UserMixin
 
 users = []
-posts = []
 
 def get_user(user_id):
     for user in users:
@@ -17,15 +16,17 @@ def get_user_by_name(name):
 
 
 class User(UserMixin):
-    def __new__(cls, user_id, username, password):
-        self = object.__new__(cls)
+    def __init__(self, user_id, username, password="", post_num=0, following_num = 0, followed_num=0):
+        # self = object.__new__(cls)
         self._user_id = user_id
         self._username = username
         self._password = password
         self._join_time = datetime.datetime.now
-        # 这个append操作需要替换为添加到数据库
-        users.append(self)
-        self.posts = []
+        if password:
+            users.append(self)
+        self.post_num = post_num
+        self.followintg_num = following_num
+        self.followed_num = followed_num
 
     def is_authenticated(self):
         return True
@@ -42,10 +43,10 @@ class User(UserMixin):
     def get_username(self):
         return self._username
 
-    @classmethod
-    def create_user(cls,userid, username, password):
-        cls(userid, username, password)
-        return cls
+    # @classmethod
+    # def create_user(cls,userid, username, password):
+    #     cls(userid, username, password)
+    #     return cls
 
     def followers(self):
         return []
