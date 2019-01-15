@@ -13,6 +13,7 @@ from gstore.queryDB import gstore_user_login, gstore_user_register, gstore_user_
     gstore_remove_follow, gstore_post_weibo, gstore_hit_weibo, gstore_user_info, gstore_user_following_weibo, \
     gstore_user_detail_info, gstore_get_username
 import datetime
+import math
 
 app = Flask(__name__)
 
@@ -185,9 +186,9 @@ def stream(username = None):
             stream.append(post)
 
         if len(stream) < limit:
-            total = offset + len(stream)
+            total = page
         else:
-            total = offset + limit * 2
+            total = page + 1
         return render_template(template, stream=stream, user=user, total=total, limit=limit, current_page=page, url="stream", username=username)
 
     else:
@@ -226,9 +227,9 @@ def user_stream(username=None):
             post = Post(item["content"], item["username"], item["post_time"])
             stream.append(post)
         if len(stream) < limit:
-            total = offset + len(stream)
+            total = page
         else:
-            total = offset + limit * 2
+            total = page + 1
         return render_template(template, stream=stream, user=user, total=total, limit=limit, current_page=page,
                                url="user_stream", username=username)
     else:
@@ -295,33 +296,54 @@ def unfollow(username):
 @app.route('/user_following/<username>', methods=['GET', 'POST'])
 @login_required
 def show_following(username):
+    page = request.args.get('p', '1')
+    if not page:
+        page = 1
+    limit = request.args.get('limit', '10')
+    if not limit:
+        limit = 10
+    limit = int(limit)
+    page = int(page)
+    offset = (page - 1) * limit
+
     template = "follow_list.html"
     response = gstore_user_detail_info(username)
     if(response["status"] != "OK"):
         flash("Failed for searching user:", username)
     following = response["result"]["following"]
     following_users = list()
-    for name in following:
+    for name in following[offset:offset+limit]:
         resp = gstore_user_info(name)
         if(resp["status"] == "OK"):
             result = resp["result"]
             user = User(result["userid"],name, post_num=result["posts_num"],
                         following_num=result["following_num"], followed_num=result["followed_num"])
             following_users.append(user)
-
-    return render_template(template, users=following_users)
+    total = math.ceil(len(following) / limit)
+    return render_template(template, users=following_users, url='show_following', username=username,
+                           total=total, limit=limit, current_page=page)
 
 
 @app.route('/user_followed/<username>', methods=['GET', 'POST'])
 @login_required
 def show_followed(username):
+    page = request.args.get('p', '1')
+    if not page:
+        page = 1
+    limit = request.args.get('limit', '10')
+    if not limit:
+        limit = 10
+    limit = int(limit)
+    page = int(page)
+    offset = (page - 1) * limit
+
     template = "follow_list.html"
     response = gstore_user_detail_info(username)
     if (response["status"] != "OK"):
         flash("Failed for searching user:", username)
     followed = response["result"]["followed"]
     followed_users = list()
-    for name in followed:
+    for name in followed[offset:offset+limit]:
         resp = gstore_user_info(name)
         if (resp["status"] == "OK"):
             result = resp["result"]
@@ -329,7 +351,9 @@ def show_followed(username):
                         following_num=result["following_num"], followed_num=result["followed_num"])
             followed_users.append(user)
 
-    return render_template(template, users=followed_users)
+    total = math.ceil(len(followed) / limit)
+    return render_template(template, users=followed_users,url='show_followed', username=username,
+                           total=total, limit=limit, current_page=page)
 
 # 分页展示页面
 @app.route('/pages', methods=['GET','POST'])
