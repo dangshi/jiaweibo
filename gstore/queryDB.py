@@ -224,9 +224,9 @@ def gstore_user_detail_info(username):
         following = list()
         for item in retjson["results"]["bindings"]:
             str_to_proc = item['s']['value']
-            followerid = str_to_proc.split("/")[-1]
-            followername = _get_username(followerid)
-            following.append(followername)
+            followingid = str_to_proc.split("/")[-1]
+            followingname = _get_username(followingid)
+            following.append(followingname)
 
         sparql = "select ?s where {?s <http://localhost:2020/vocab/userrelation_tuid> \"" + userid + "\"}"
         ret = qe.execute(sparql)
@@ -235,7 +235,7 @@ def gstore_user_detail_info(username):
         followed = list()
         for item in retjson["results"]["bindings"]:
             str_to_proc = item['s']['value']
-            followerid = str_to_proc.split("/")[-1]
+            followerid = str_to_proc.split("/")[-2]
             followername = _get_username(followerid)
             followed.append(followername)
 

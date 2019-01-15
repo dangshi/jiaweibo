@@ -16,7 +16,7 @@ def get_user_by_name(name):
 
 
 class User(UserMixin):
-    def __init__(self, user_id, username, password="", post_num=0, following_num = 0, followed_num=0, following=[], followed=[]):
+    def __init__(self, user_id, username, password="", post_num=0, following_num = 0, followed_num=0, following=list(), followed=[]):
         # self = object.__new__(cls)
         self._user_id = user_id
         self._username = username

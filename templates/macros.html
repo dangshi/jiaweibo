@@ -8,3 +8,41 @@
         {{ field(placeholder=field.label.text) }}
     </div>
 {% endmacro %}
+
+{% macro pager(total, limit, current_page, left_offset=3, right_offset=7) -%}
+ <!--设置前一页和后一页-->
+{% set previous_page = current_page - 1 %}
+{% set previous_page = 1 if previous_page < 1 else previous_page%}
+{% set next_page = current_page + 1 %}
+{% set next_page = total if next_page > total else next_page%}
+ <!--显示页码:当前页码的前三页和后三页-->
+{% set begin_idx = 1 if current_page <= 3 else current_page - left_offset %}
+{% set end_idx = begin_idx + right_offset %}
+{% set end_idx = total if end_idx > total else end_idx %}
+
+
+<ul class="pagination pagination-sm">
+    {% if current_page > 1 %}
+    <li><a href="{{url_for('pages', p=1)}}">首页</a></li>
+    <li><a href="{{url_for('pages', p=previous_page)}}">&lt;</a></li>
+    {%else%}
+    <li class="disabled"><a>首页</a></li>
+    <li class="disabled"><a>&lt;</a></li>
+    {%endif%}
+    {% for idx in range(begin_idx, end_idx+1) %}
+    <li class="{%if current_page == idx %}active{%endif%}">
+    <a href="{{url_for('pages', p=idx)}}">{{idx}}</a>
+    </li>
+    {% endfor %}
+    {%if current_page < total %}
+    <li><a href="{{url_for('pages', p=next_page)}}">&gt;</a></li>
+    <li><a href="{{url_for('pages', p=total)}}">尾页</a></li>
+    {%else%}
+    <li
+    class="disabled"><a>&gt;</a></li>
+    <li
+    class="disabled"><a>尾页</a></li>
+    {%endif%}
+</ul>
+
+{%- endmacro %}
