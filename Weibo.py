@@ -29,10 +29,6 @@ login_manager.init_app(app)
 
 
 @app.route('/')
-def hello_world():
-    return url_for("index")
-
-
 @app.route('/index',methods=['GET', 'POST'])
 def index():
     page = request.args.get('p', '1')
@@ -97,7 +93,7 @@ def register():
     elif username and password and repassword:
         respon = gstore_user_register(username, password)
         if respon["status"] == "OK":
-            return redirect(url_for('index'))
+            return redirect(url_for('login'))
         else:
             print("注册失败")
             flash("Register failed!", "error")
